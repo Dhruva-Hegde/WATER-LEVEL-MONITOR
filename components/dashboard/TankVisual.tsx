@@ -38,9 +38,6 @@ export function TankVisual({ level, status, size = "md" }: TankVisualProps) {
           {/* 3D Ridges Effect */}
           <div className="absolute inset-0 tank-ridges opacity-60 z-10" />
 
-          {/* Glass Reflection Highlight */}
-          <div className="absolute top-0 left-[18%] w-[1.5px] h-full bg-white/20 z-40 shadow-[0_0_10px_white/30]" />
-
           {/* Gauge Marking Area (Reference for labels) */}
           <div className="absolute inset-x-0 top-6 bottom-6 z-50 pointer-events-none">
             {/* Side Gauge/Scale - Perfectly Aligned */}

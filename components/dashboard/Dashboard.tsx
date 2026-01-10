@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List, Droplets, RefreshCw, Plus } from "lucide-react";
+import { LayoutGrid, List, Droplets, Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { TankCard, TankStatus } from "./TankCard";
-import { LiveIndicator } from "./LiveIndicator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTanks } from "@/hooks/use-tanks";
+import { LiveIndicator } from "./LiveIndicator";
 
 
 export function Dashboard() {
@@ -45,42 +45,61 @@ export function Dashboard() {
     <div className="min-h-screen bg-background selection:bg-primary/20">
       {/* Simple Compact Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
-              <Droplets className="w-4 h-4 text-primary" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
+                <Droplets className="w-4 h-4 text-primary" />
+              </div>
+              <h1 className="text-sm sm:text-base font-bold tracking-tight">
+                Smart Tank <span className="text-primary italic">Monitor</span>
+              </h1>
             </div>
-            <h1 className="text-base font-bold tracking-tight">
-              Smart Tank <span className="text-primary italic">Monitor</span>
-            </h1>
+
+            {/* Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/30">
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium"
+                >
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/about">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium"
+                >
+                  About
+                </Button>
+              </Link>
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Node Count */}
+            <div className="hidden sm:flex items-center gap-2 py-1.5 px-3 rounded-full bg-muted/30 border border-border/40">
+              <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-tighter">
+                Nodes: <span className="text-foreground">{tanks.length}</span>
+              </span>
+            </div>
+
             <ThemeToggle />
-            <Link href="/setup">
+
+            <Link href="/setup" className="hidden sm:block">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 hidden md:flex"
+                className="h-8 gap-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
               >
                 <Plus className="w-3.5 h-3.5 text-primary" />
-                Add New Node
+                <span className="hidden lg:inline">Add New Node</span>
+                <span className="lg:hidden">Add</span>
               </Button>
             </Link>
-
-            <div className="flex items-center gap-4 py-1.5 px-3 rounded-full bg-muted/30 border border-border/40 backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <LiveIndicator />
-                <div className="h-4 w-px bg-border/50" />
-                <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-tighter">
-                  Nodes: <span className="text-foreground">{tanks.length}</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2 pl-4 border-l border-border/50">
-                <RefreshCw className="w-3 h-3 text-primary animate-spin-slow" />
-                <span className="text-[10px] font-extrabold tracking-tight text-primary">SYNCED</span>
-              </div>
-            </div>
 
             <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/30">
               <Button
@@ -110,7 +129,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="section-fade-in">
           <div
             className={cn(
