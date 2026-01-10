@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List, Droplets, Plus, RefreshCw } from "lucide-react";
+import { Droplets, Plus } from "lucide-react";
 import Link from "next/link";
 import { TankCard, TankStatus } from "./TankCard";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { LiveIndicator } from "./LiveIndicator";
 export function Dashboard() {
   const router = useRouter();
   const { data: tanks, isLoading } = useTanks();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Redirect to setup if no tanks are found (Only on initial load)
   useEffect(() => {
@@ -46,37 +45,13 @@ export function Dashboard() {
       {/* Simple Compact Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
-                <Droplets className="w-4 h-4 text-primary" />
-              </div>
-              <h1 className="text-sm sm:text-base font-bold tracking-tight">
-                Smart Tank <span className="text-primary italic">Monitor</span>
-              </h1>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
+              <Droplets className="w-4 h-4 text-primary" />
             </div>
-
-            {/* Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/30">
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 text-xs font-medium"
-                >
-                  Dashboard
-                </Button>
-              </Link>
-              <Link href="/about">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 text-xs font-medium"
-                >
-                  About
-                </Button>
-              </Link>
-            </nav>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight">
+              Smart Tank <span className="text-primary italic">Monitor</span>
+            </h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -89,54 +64,35 @@ export function Dashboard() {
 
             <ThemeToggle />
 
-            <Link href="/setup" className="hidden sm:block">
+            <Link href="/setup">
               <Button
                 variant="outline"
                 size="sm"
                 className="h-8 gap-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
               >
                 <Plus className="w-3.5 h-3.5 text-primary" />
+                <span className="hidden sm:inline lg:hidden">Add</span>
                 <span className="hidden lg:inline">Add New Node</span>
-                <span className="lg:hidden">Add</span>
               </Button>
             </Link>
 
-            <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/30">
+            {/* About Link */}
+            <Link href="/about">
               <Button
                 variant="ghost"
                 size="sm"
-                className={cn(
-                  "h-7 w-7 p-0 transition-all duration-200",
-                  viewMode === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                )}
-                onClick={() => setViewMode("grid")}
+                className="h-8 px-3 text-xs font-medium hover:bg-primary/5"
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                About
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-7 w-7 p-0 transition-all duration-200",
-                  viewMode === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                )}
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            </Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="section-fade-in">
-          <div
-            className={cn(
-              "grid gap-6 transition-all duration-300",
-              viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
-            )}
-          >
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 transition-all duration-300">
             {tanks.length > 0 ? (
               tanks.map((tank) => (
                 <TankCard

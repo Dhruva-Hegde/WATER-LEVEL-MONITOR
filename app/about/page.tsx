@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Users, Award } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Users, Award } from "lucide-react";
 
 export default function AboutPage() {
     const teamMembers = [
@@ -22,18 +20,6 @@ export default function AboutPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Header */}
-            <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center">
-                    <Link href="/">
-                        <Button variant="ghost" size="sm" className="gap-2">
-                            <ArrowLeft className="w-4 h-4" />
-                            Back to Dashboard
-                        </Button>
-                    </Link>
-                </div>
-            </header>
-
             {/* Main Content */}
             <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
                 <div className="space-y-12">
