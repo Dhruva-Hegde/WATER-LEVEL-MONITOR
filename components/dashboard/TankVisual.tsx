@@ -9,9 +9,9 @@ interface TankVisualProps {
 
 export function TankVisual({ level, status, size = "md" }: TankVisualProps) {
   const sizeClasses = {
-    sm: "w-20 h-28",
-    md: "w-24 h-36",
-    lg: "w-28 h-44",
+    sm: "w-24 h-32",
+    md: "w-28 h-40",
+    lg: "w-32 h-44",
   };
 
   const getLevelColor = () => {
@@ -24,57 +24,46 @@ export function TankVisual({ level, status, size = "md" }: TankVisualProps) {
 
   return (
     <div className={cn("relative flex flex-col items-center", sizeClasses[size])}>
-      {/* Top Valve/Inlet */}
-      <div className="w-6 h-3 metal-reflect rounded-t-sm border border-black/20 z-20 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-black/30 rounded-full" />
+      {/* Premium Top Lid - Visible in white theme */}
+      <div className="w-14 h-4 bg-gradient-to-b from-white to-zinc-200 rounded-t-xl border-x border-t border-black/10 z-30 relative shadow-sm flex flex-col items-center">
+        <div className="w-10 h-1 bg-black/5 rounded-full mt-1.5 blur-[1px]" />
       </div>
 
-      {/* Main Tank Body */}
-      <div className="relative w-full flex-1 group">
-        <div className="absolute inset-0 rounded-[2rem] rounded-b-[1.5rem] tank-glass border-2 border-white/10 overflow-hidden shadow-2xl">
-          {/* Glass Reflection Highlight */}
-          <div className="absolute top-0 left-[20%] w-[1px] h-full bg-white/20 z-30" />
+      {/* Main Tank Body (Polished Ridged Cylinder) */}
+      <div className="relative w-full flex-1 -mt-1 group">
+        <div className="absolute inset-0 rounded-[1.75rem] rounded-b-[1rem] tank-glass border-2 border-white/20 overflow-hidden shadow-2xl">
+          {/* Vertical Specular Highlight */}
+          <div className="absolute top-0 left-[10%] w-[15%] h-full tank-specular z-30 opacity-60" />
 
-          {/* Side Gauge/Scale */}
-          <div className="absolute right-3 inset-y-6 w-3 flex flex-col justify-between items-end z-20 opacity-40 group-hover:opacity-100 transition-opacity">
-            {[100, 75, 50, 25, 0].map((mark) => (
-              <div key={mark} className="flex items-center gap-1">
-                <span className="text-[7px] font-bold text-white leading-none">{mark}</span>
-                <div className="w-1.5 h-[1px] bg-white" />
-              </div>
-            ))}
+          {/* 3D Ridges Effect */}
+          <div className="absolute inset-0 tank-ridges opacity-60 z-10" />
+
+          {/* Glass Reflection Highlight */}
+          <div className="absolute top-0 left-[18%] w-[1.5px] h-full bg-white/20 z-40 shadow-[0_0_10px_white/30]" />
+
+          {/* Gauge Marking Area (Reference for labels) */}
+          <div className="absolute inset-x-0 top-6 bottom-6 z-50 pointer-events-none">
+            {/* Side Gauge/Scale - Perfectly Aligned */}
+            <div className="absolute right-3 inset-y-0 w-4 flex flex-col justify-between items-end">
+              {[100, 75, 50, 25, 0].map((mark) => (
+                <div key={mark} className="flex items-center gap-2">
+                  <span className="text-[8px] font-black text-white leading-none [text-shadow:0_1px_4px_rgba(0,0,0,1)] drop-shadow-lg">{mark}</span>
+                  <div className="w-2 h-[1.5px] bg-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.5)] rounded-full" />
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Realistic High-Speed Inflow Stream */}
-          {status === "filling" && level < 100 && (
-            <>
-              {/* Vertical Stream */}
-              <div className="absolute inset-x-0 top-0 h-full pointer-events-none z-10 flex justify-center">
-                <div className="w-1.5 h-full relative overflow-hidden">
-                  <div className="absolute inset-0 bg-primary/40 blur-[1px] animate-water-flow" />
-                  <div className="absolute inset-x-0 top-0 h-full bg-gradient-to-b from-primary/60 to-transparent opacity-50" />
-                </div>
-              </div>
-
-              {/* Surface Splash/Impact Effect */}
-              <div
-                className="absolute left-1/2 -translate-x-1/2 w-8 h-4 z-20 pointer-events-none"
-                style={{ bottom: `${level}%`, transform: 'translate(-50%, 50%)' }}
-              >
-                <div className="absolute inset-0 bg-white/40 blur-md rounded-full animate-surface-splash" />
-                <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-ping opacity-30" />
-              </div>
-            </>
-          )}
-
-          {/* Water Fill */}
+          {/* Water Fill - Starting from physical bottom, top edge matching labels */}
           <div
             className={cn(
-              "absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-in-out",
+              "absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-in-out z-20",
               "bg-gradient-to-t",
               getLevelColor()
             )}
-            style={{ height: `${level}%` }}
+            style={{
+              height: `calc(1.5rem + (${level} * (100% - 3rem) / 100))`
+            }}
           >
             {/* Water surface with realistic curve */}
             <div className="absolute top-0 left-0 right-0 h-4 -translate-y-1/2 overflow-visible">
@@ -105,14 +94,33 @@ export function TankVisual({ level, status, size = "md" }: TankVisualProps) {
             {/* Internal shadow for depth */}
             <div className="absolute inset-0 bg-black/10 pointer-events-none" />
           </div>
+
+          {/* Realistic Inflow Stream */}
+          {status === "filling" && level < 100 && (
+            <>
+              {/* Vertical Stream */}
+              <div className="absolute inset-x-0 top-0 h-full pointer-events-none z-10 flex justify-center">
+                <div className="w-1.5 h-full relative overflow-hidden">
+                  <div className="absolute inset-0 bg-primary/40 blur-[1px] animate-water-flow" />
+                  <div className="absolute inset-x-0 top-0 h-full bg-gradient-to-b from-primary/60 to-transparent opacity-50" />
+                </div>
+              </div>
+
+              {/* Surface Splash/Impact Effect - Perfectly Aligned with Surface */}
+              <div
+                className="absolute left-1/2 -translate-x-1/2 w-8 h-4 z-20 pointer-events-none"
+                style={{ bottom: `calc(1.5rem + (${level} * (100% - 3rem) / 100))`, transform: 'translate(-50%, 50%)' }}
+              >
+                <div className="absolute inset-0 bg-white/40 blur-md rounded-full animate-surface-splash" />
+                <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-ping opacity-30" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Tank Base/Support Legs */}
-      <div className="w-full h-4 flex justify-between px-2 -mt-1 z-0">
-        <div className="w-3 h-full metal-reflect rounded-b-sm border-x border-b border-black/20 shadow-lg" />
-        <div className="w-3 h-full metal-reflect rounded-b-sm border-x border-b border-black/20 shadow-lg" />
-      </div>
+      {/* Solid Base Rim (Reno Style) */}
+      <div className="w-[98%] h-2 bg-white/5 rounded-b-lg border-x border-b border-white/10 z-0 shadow-xl" />
     </div>
   );
 }
