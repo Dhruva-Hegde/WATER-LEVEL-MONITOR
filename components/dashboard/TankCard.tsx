@@ -81,7 +81,7 @@ export function TankCard({
 
   return (
     <div className={cn(
-      "glass-card rounded-xl p-5 transition-all duration-300 hover:border-primary/30 relative group overflow-hidden",
+      "glass-card rounded-xl p-5 transition-all duration-300 hover:border-primary/30 relative group overflow-hidden w-full max-w-md",
       !isOnline && "opacity-60"
     )}>
       {/* Background Water Fill Effect */}
