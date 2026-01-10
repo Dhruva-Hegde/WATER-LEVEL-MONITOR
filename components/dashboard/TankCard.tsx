@@ -87,7 +87,7 @@ export function TankCard({
       {/* Background Water Fill Effect */}
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 bg-gradient-to-t transition-all duration-1000 ease-in-out -z-10",
+          "absolute inset-x-0 bottom-0 bg-gradient-to-t transition-all duration-1000 ease-in-out -z-10 water-fill-animated",
           getBackgroundGradient()
         )}
         style={{ height: `${level}%` }}

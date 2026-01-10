@@ -307,6 +307,68 @@
     animation: surface-splash 0.3s ease-in-out infinite;
   }
 
+  /* Joyful Water Fill Animations */
+  @keyframes water-shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes water-ripple {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes water-fill-bounce {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+    }
+    25% {
+      transform: translateY(-3px) translateX(-1px);
+    }
+    50% {
+      transform: translateY(-1px) translateX(1px);
+    }
+    75% {
+      transform: translateY(-2px) translateX(-0.5px);
+    }
+  }
+
+  @keyframes gentle-glow-pulse {
+    0%, 100% {
+      filter: brightness(1) drop-shadow(0 0 8px currentColor);
+    }
+    50% {
+      filter: brightness(1.2) drop-shadow(0 0 12px currentColor);
+    }
+  }
+
+  .water-fill-animated {
+    animation: water-fill-bounce 3s ease-in-out infinite, water-shimmer 6s ease infinite;
+    background-size: 200% 200%;
+  }
+
+  .water-ripple-effect {
+    animation: water-ripple 2s ease-in-out infinite;
+  }
+
+  .glow-pulse {
+    animation: gentle-glow-pulse 2s ease-in-out infinite;
+  }
+
   .water-wave-smooth {
     animation: wave-smooth 5s ease-in-out infinite;
   }

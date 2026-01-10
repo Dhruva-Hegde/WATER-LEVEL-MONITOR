@@ -74,7 +74,7 @@ export function TankVisual({ level, status, size = "md" }: TankVisualProps) {
 
             {/* Bubble details */}
             <div className="absolute inset-0 overflow-hidden opacity-30">
-              {[...Array(isAgitated ? 6 : 3)].map((_, i) => (
+              {[...Array(isAgitated ? 12 : 8)].map((_, i) => (
                 <div
                   key={i}
                   className="absolute w-1 h-1 rounded-full bg-white/60 animate-float"

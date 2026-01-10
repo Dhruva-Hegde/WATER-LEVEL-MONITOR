@@ -76,7 +76,7 @@ export function Dashboard() {
               {/* Water fill effect from bottom */}
               <div
                 className={cn(
-                  "absolute inset-x-0 bottom-0 transition-all duration-1000 ease-in-out -z-10",
+                  "absolute inset-x-0 bottom-0 transition-all duration-1000 ease-in-out -z-10 water-fill-animated",
                   averageLevel <= 10 ? "bg-gradient-to-t from-red-500/40 to-red-500/20" :
                     averageLevel <= 25 ? "bg-gradient-to-t from-orange-500/40 to-orange-500/20" :
                       averageLevel >= 90 ? "bg-gradient-to-t from-green-500/40 to-green-500/20" :
@@ -84,7 +84,7 @@ export function Dashboard() {
                 )}
                 style={{ height: `${averageLevel}%` }}
               />
-              <Droplets className={cn("w-4 h-4 relative z-10", getLogoIconClass())} />
+              <Droplets className={cn("w-4 h-4 relative z-10 glow-pulse", getLogoIconClass())} />
             </div>
             <h1 className="text-sm sm:text-base font-bold tracking-tight">
               Smart Tank <span className="text-primary italic">Monitor</span>
