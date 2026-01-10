@@ -51,8 +51,6 @@ export const hydrateStore = async (force = false) => {
                         id: t.id,
                         name: t.name,
                         location: t.location || "Unknown",
-                        name: t.name,
-                        location: t.location || "Unknown",
                         capacity: t.capacity,
                         height: t.height || 100,
                         // Preserve live data if it exists in memory, else default to offline
