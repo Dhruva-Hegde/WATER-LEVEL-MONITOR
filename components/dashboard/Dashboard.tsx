@@ -16,6 +16,32 @@ export function Dashboard() {
   const router = useRouter();
   const { data: tanks, isLoading } = useTanks();
 
+  // Calculate average tank level for logo glow
+  const averageLevel = tanks.length > 0
+    ? tanks.reduce((sum, tank) => sum + (tank.level ?? 0), 0) / tanks.length
+    : 0;
+
+  const getLogoGlowClass = () => {
+    if (averageLevel <= 10) return "glow-destructive";
+    if (averageLevel <= 25) return "glow-warning";
+    if (averageLevel >= 90) return "glow-success";
+    return "glow-primary";
+  };
+
+  const getLogoBackgroundClass = () => {
+    if (averageLevel <= 10) return "bg-red-500/20 border-red-500/40";
+    if (averageLevel <= 25) return "bg-orange-500/20 border-orange-500/40";
+    if (averageLevel >= 90) return "bg-green-500/20 border-green-500/40";
+    return "bg-primary/10 border-primary/20";
+  };
+
+  const getLogoIconClass = () => {
+    if (averageLevel <= 10) return "text-red-500";
+    if (averageLevel <= 25) return "text-orange-500";
+    if (averageLevel >= 90) return "text-green-500";
+    return "text-primary";
+  };
+
   // Redirect to setup if no tanks are found (Only on initial load)
   useEffect(() => {
     if (!isLoading && tanks && tanks.length === 0) {
@@ -46,8 +72,19 @@ export function Dashboard() {
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
-              <Droplets className="w-4 h-4 text-primary" />
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center border relative overflow-hidden", getLogoBackgroundClass(), getLogoGlowClass())}>
+              {/* Water fill effect from bottom */}
+              <div
+                className={cn(
+                  "absolute inset-x-0 bottom-0 transition-all duration-1000 ease-in-out -z-10",
+                  averageLevel <= 10 ? "bg-gradient-to-t from-red-500/40 to-red-500/20" :
+                    averageLevel <= 25 ? "bg-gradient-to-t from-orange-500/40 to-orange-500/20" :
+                      averageLevel >= 90 ? "bg-gradient-to-t from-green-500/40 to-green-500/20" :
+                        "bg-gradient-to-t from-primary/40 to-primary/20"
+                )}
+                style={{ height: `${averageLevel}%` }}
+              />
+              <Droplets className={cn("w-4 h-4 relative z-10", getLogoIconClass())} />
             </div>
             <h1 className="text-sm sm:text-base font-bold tracking-tight">
               Smart Tank <span className="text-primary italic">Monitor</span>

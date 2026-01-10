@@ -3,7 +3,6 @@
 import { MapPin, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TankVisual } from "./TankVisual";
-import { Badge } from "@/components/ui/badge";
 import { NodeActions } from "./NodeActions";
 
 export type TankStatus = "idle" | "filling" | "full" | "low" | "offline" | "draining" | "critical" | "connecting";
@@ -73,20 +72,31 @@ export function TankCard({
     className: "bg-muted text-muted-foreground border-muted-foreground/20"
   };
 
+  // Get very light gradient color based on level
+  const getBackgroundGradient = () => {
+    if (level <= 10) return "from-red-500/5 to-red-500/10";
+    if (level <= 25) return "from-orange-500/5 to-orange-500/10";
+    return "from-blue-500/5 to-blue-500/10";
+  };
+
   return (
     <div className={cn(
-      "glass-card rounded-xl p-5 transition-all duration-300 hover:border-primary/30 relative group",
+      "glass-card rounded-xl p-5 transition-all duration-300 hover:border-primary/30 relative group overflow-hidden",
       !isOnline && "opacity-60"
     )}>
+      {/* Background Water Fill Effect */}
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 bg-gradient-to-t transition-all duration-1000 ease-in-out -z-10",
+          getBackgroundGradient()
+        )}
+        style={{ height: `${level}%` }}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg">{name}</h3>
-            <Badge variant="outline" className={cn("text-xs", currentStatus.className)}>
-              {currentStatus.label}
-            </Badge>
-          </div>
+          <h3 className="font-semibold text-lg">{name}</h3>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
             <MapPin className="w-3 h-3" />
             <span>{location}</span>
@@ -136,12 +146,14 @@ export function TankCard({
           {isOnline ? (
             <>
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-muted-foreground">Online</span>
+              <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-xs font-medium border border-success/30">
+                {currentStatus.label}
+              </span>
             </>
           ) : (
             <>
               <WifiOff className="w-3 h-3 text-destructive" />
-              <span className="text-destructive">Offline</span>
+              <span className="px-2 py-0.5 rounded-full bg-destructive/20 text-destructive text-xs font-medium border border-destructive/30">Offline</span>
             </>
           )}
         </div>
