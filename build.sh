@@ -34,7 +34,7 @@ npm run build
 
 if [ $? -eq 0 ]; then
     echo "--------------------------------------------------------"
-    echo "✅ Build Complete! Run 'npm start' to launch."
+    echo "✅ Build Complete! Run 'npm run server' to launch."
     echo "--------------------------------------------------------"
 else
     echo "❌ Build Failed."

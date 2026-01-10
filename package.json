@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "server": "tsx server.ts",
+    "server": "npm run start && tsx server.ts",
     "lint": "eslint",
     "server-dev": "tsx watch server.ts"
   },
