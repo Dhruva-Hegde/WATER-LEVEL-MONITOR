@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 
 export default function AboutPage() {
     const teamMembers = [
-        { name: "Team Member 1", role: "Full Stack Developer" },
-        { name: "Team Member 2", role: "IoT Engineer" },
-        { name: "Team Member 3", role: "Frontend Developer" },
-        { name: "Team Member 4", role: "Backend Developer" },
-        { name: "Team Member 5", role: "UI/UX Designer" },
-        { name: "Team Member 6", role: "Hardware Engineer" },
+        { name: "Team Member 1", role: "Full Stack Developer", link: "" },
+        { name: "Team Member 2", role: "IoT Engineer", link: "" },
+        { name: "Dhruva Hegde", role: "Frontend Developer", link: "https://dhruvahegde.vercel.app/" },
+        { name: "Team Member 4", role: "Backend Developer", link: "" },
+        { name: "Team Member 5", role: "UI/UX Designer", link: "" },
+        { name: "Team Member 6", role: "Hardware Engineer", link: "" },
     ];
 
     const guide = {
@@ -70,11 +70,8 @@ export default function AboutPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                            {teamMembers.map((member, index) => (
-                                <div
-                                    key={index}
-                                    className="group relative rounded-xl border border-border/40 bg-card p-6 hover:border-primary/40 hover:shadow-lg transition-all duration-300"
-                                >
+                            {teamMembers.map((member, index) => {
+                                const CardContent = (
                                     <div className="flex flex-col items-center text-center space-y-3">
                                         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20 group-hover:border-primary/40 transition-colors">
                                             <span className="text-2xl font-bold text-primary">{member.name.charAt(0)}</span>
@@ -84,8 +81,32 @@ export default function AboutPage() {
                                             <p className="text-sm text-muted-foreground">{member.role}</p>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+
+                                return member.link ? (
+                                    <a
+                                        key={index}
+                                        href={member.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative rounded-xl border border-border/40 bg-card p-6 hover:border-primary/40 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                                    >
+                                        {CardContent}
+                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </div>
+                                    </a>
+                                ) : (
+                                    <div
+                                        key={index}
+                                        className="group relative rounded-xl border border-border/40 bg-card p-6 hover:border-primary/40 hover:shadow-lg transition-all duration-300"
+                                    >
+                                        {CardContent}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
