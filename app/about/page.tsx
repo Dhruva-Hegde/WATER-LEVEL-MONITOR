@@ -4,18 +4,19 @@ import { Users, Award } from "lucide-react";
 
 export default function AboutPage() {
     const teamMembers = [
-        { name: "Team Member 1", role: "Full Stack Developer", link: "" },
-        { name: "Team Member 2", role: "IoT Engineer", link: "" },
+        { name: "Adesh M", role: "Full Stack Developer", link: "" },
         { name: "Dhruva Hegde", role: "Frontend Developer", link: "https://dhruvahegde.vercel.app/" },
-        { name: "Team Member 4", role: "Backend Developer", link: "" },
-        { name: "Team Member 5", role: "UI/UX Designer", link: "" },
-        { name: "Team Member 6", role: "Hardware Engineer", link: "" },
+        { name: "Ashrith Aithal", role: "IoT Engineer", link: "" },
+        { name: "Karthik Hegde", role: "Backend Developer", link: "" },
+        { name: "Afreed Pasha", role: "UI/UX Designer", link: "" },
+        { name: "Ankita", role: "Hardware Engineer", link: "" },
     ];
 
     const guide = {
-        name: "Dr. Guide Name",
-        role: "Project Supervisor",
-        title: "Professor, Department of Engineering"
+        name: "Dr. Manjunath M",
+        role: "Project Guide",
+        title: "Assistant Professor, Department of MCA",
+        link: "https://www.linkedin.com/in/dr-manjunath-m/"
     };
 
     return (
@@ -105,7 +106,23 @@ export default function AboutPage() {
                             <h2 className="text-2xl font-bold tracking-tight mb-2">Under the Guidance of</h2>
                         </div>
 
-                        <div className="max-w-md mx-auto">
+                        {guide.link ? (
+                            <a
+                                href={guide.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block group rounded-xl border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-8 text-center space-y-3 hover:border-amber-500/40 hover:shadow-lg transition-all duration-300"
+                            >
+                                <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center border-2 border-amber-500/30 mx-auto group-hover:border-amber-500/50 transition-colors">
+                                    <span className="text-3xl font-bold text-amber-500">{guide.name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-xl group-hover:text-amber-600 transition-colors">{guide.name}</h3>
+                                    <p className="text-sm text-muted-foreground">{guide.title}</p>
+                                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-1">{guide.role}</p>
+                                </div>
+                            </a>
+                        ) : (
                             <div className="rounded-xl border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-8 text-center space-y-3">
                                 <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center border-2 border-amber-500/30 mx-auto">
                                     <span className="text-3xl font-bold text-amber-500">{guide.name.charAt(0)}</span>
@@ -116,7 +133,7 @@ export default function AboutPage() {
                                     <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-1">{guide.role}</p>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Footer */}
