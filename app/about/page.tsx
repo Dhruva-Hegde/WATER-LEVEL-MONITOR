@@ -4,7 +4,7 @@ import { Users, Award } from "lucide-react";
 
 export default function AboutPage() {
     const teamMembers = [
-        { name: "Adesh M", role: "Full Stack Developer", link: "" },
+        { name: "Adesh M", role: "Full Stack Developer", link: "https://adesh-rust.vercel.app/" },
         { name: "Dhruva Hegde", role: "Frontend Developer", link: "https://dhruvahegde.vercel.app/" },
         { name: "Ashrith Aithal", role: "IoT Engineer", link: "" },
         { name: "Karthik Hegde", role: "Backend Developer", link: "" },
