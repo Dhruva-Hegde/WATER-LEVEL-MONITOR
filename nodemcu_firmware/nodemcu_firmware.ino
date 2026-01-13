@@ -203,10 +203,26 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       
     case WStype_TEXT:
       {
-        String text = "";
-        for(size_t i = 0; i < length; i++) {
-          text += (char)payload[i];
+        // VERBOSE LOGGING
+        log("SOCKET", "Rx: " + String(length) + " bytes | Heap: " + String(ESP.getFreeHeap()) + "b");
+
+        // Fast Path: Heartbeat (No allocation needed)
+        if (length == 1 && payload[0] == '2') {
+           webSocket.sendTXT("3");
+           return;
         }
+
+        // Safe & Efficient String Construction
+        // limit to avoiding stack overflow on huge packets
+        if (length > 1024) {
+             log("SOCKET", "Packet too large, ignoring");
+             return;
+        }
+        
+        char temp[length + 1];
+        memcpy(temp, payload, length);
+        temp[length] = '\0';
+        String text = String(temp);
         
         // Protocol: Engine.IO HANDSHAKE
         if (text.startsWith("0")) {
@@ -241,9 +257,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         }
         
         // Protocol: Heartbeat Ping (2) -> Respond Pong (3)
-        else if (text == "2") {
-          webSocket.sendTXT("3");
-        }
+        // Handled in fast-path above.
       }
       break;
   }
