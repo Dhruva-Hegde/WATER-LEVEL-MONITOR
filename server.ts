@@ -9,7 +9,7 @@ import {
     updateConfig,
     checkTimeouts,
     validateSecret,
-    tankStore
+    tankStore,
 } from "./lib/store";
 import { db } from "@/lib/db";
 import { tanks } from "@/lib/db/schema";
@@ -37,7 +37,7 @@ app.prepare().then(async () => {
         addTrailingSlash: false,
         cors: {
             origin: "*",
-        }
+        },
     });
 
     (global as any).io = io;
@@ -45,7 +45,6 @@ app.prepare().then(async () => {
     console.log("Socket.io initialized");
 
     io.on("connection", (socket) => {
-
         // Dashboard joins 'dashboard' room
         socket.on("join-dashboard", async () => {
             socket.join("dashboard");
@@ -70,11 +69,13 @@ app.prepare().then(async () => {
 
             // PUSH Configuration to ensure node has latest physics params
             // This handles the "Initial Height on Pairing" requirement implicitly, as the node connects immediately after credential exchange.
-            // It ALSO robustly handles reboots/reconnects. 
+            // It ALSO robustly handles reboots/reconnects.
             const tank = tankStore.state.tanks[secret];
-            if (tank && tank.height) {
+            if (tank?.height) {
                 io.to(`device-${secret}`).emit("tank-config", { height: tank.height });
-                console.log(`[Server] Synced physics to device (On-Connect): Height ${tank.height}cm`);
+                console.log(
+                    `[Server] Synced physics to device (On-Connect): Height ${tank.height}cm`
+                );
             }
         });
 
@@ -88,9 +89,18 @@ app.prepare().then(async () => {
 
             socket.join(`device-${secret}`); // Safe to auto-join NOW because we validated.
 
-            console.log(`[Server] Received update from secret ${secret.slice(0, 8)}... : Level ${level}%, Status: ${status}`);
+            console.log(
+                `[Server] Received update from secret ${secret.slice(
+                    0,
+                    8
+                )}... : Level ${level}%, Status: ${status}`
+            );
 
-            const updatedState = await updateTelemetry(secret, { level, status, rssi });
+            const updatedState = await updateTelemetry(secret, {
+                level,
+                status,
+                rssi,
+            });
 
             if (updatedState) {
                 io.to("dashboard").emit("tank-live-update", updatedState);
@@ -108,13 +118,23 @@ app.prepare().then(async () => {
             }
 
             // 1. Update In-Memory
-            const updatedState = updateConfig(secret, { name, capacity, location, height });
+            const updatedState = updateConfig(secret, {
+                name,
+                capacity,
+                location,
+                height,
+            });
 
             // 2. Update Database (Async, fire & forget for performance)
             try {
-                await db.update(tanks).set({ name, capacity, location, height }).where(eq(tanks.id, id));
+                await db
+                    .update(tanks)
+                    .set({ name, capacity, location, height })
+                    .where(eq(tanks.id, id));
                 console.log("[Server] DB Config updated for", id);
-            } catch (e) { console.error("DB Update failed", e); }
+            } catch (e) {
+                console.error("DB Update failed", e);
+            }
 
             // 3. Broadcast to Dashboard
             if (updatedState) {
@@ -128,12 +148,14 @@ app.prepare().then(async () => {
 
             if (height) {
                 io.to(`device-${secret}`).emit("tank-config", { height });
-                console.log(`[Server] Pushed physics config to device: Height ${height}cm`);
+                console.log(
+                    `[Server] Pushed physics config to device: Height ${height}cm`
+                );
             }
         });
 
-        socket.on("disconnect", () => {
-            // Socket disconnect logic if needed
+        socket.on("disconnect", (reason) => {
+            console.log(`[Server] Socket disconnected: ${reason}`);
         });
     });
 

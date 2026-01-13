@@ -203,7 +203,10 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       
     case WStype_TEXT:
       {
-        String text = String((char*)payload);
+        String text = "";
+        for(size_t i = 0; i < length; i++) {
+          text += (char)payload[i];
+        }
         
         // Protocol: Engine.IO HANDSHAKE
         if (text.startsWith("0")) {
