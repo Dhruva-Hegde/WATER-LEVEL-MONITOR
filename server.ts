@@ -135,7 +135,7 @@ app.prepare().then(async () => {
                 level,
                 status,
                 rssi,
-            });
+            }) as any; // Cast to avoid TS 'never' inference issues in complex handler
 
             if (updatedState) {
                 // 1. Alert Logic: Emit alert to dashboard if below threshold

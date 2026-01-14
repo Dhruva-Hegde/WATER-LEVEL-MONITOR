@@ -12,10 +12,9 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const rangeMinutes = parseInt(searchParams.get("range") || "1440"); // Default 24h
 
-    // Calculate start time
-    const now = new Date();
-    const startTime = new Date(now.getTime() - rangeMinutes * 60 * 1000);
-    const startTimeIso = startTime.toISOString();
+    // Calculate start time in Unix Seconds
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = now - (rangeMinutes * 60);
 
     try {
         const history = await db.select()
@@ -23,7 +22,7 @@ export async function GET(
             .where(
                 and(
                     eq(readings.tankId, id),
-                    gt(readings.timestamp, startTimeIso)
+                    gt(readings.timestamp, startTime)
                 )
             )
             .orderBy(desc(readings.timestamp))

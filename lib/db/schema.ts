@@ -19,7 +19,7 @@ export const readings = sqliteTable("readings", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     tankId: text("tank_id").notNull(),
     level: integer("level").notNull(),
-    timestamp: integer("timestamp").notNull().default(sql`CURRENT_TIMESTAMP`),
+    timestamp: integer("timestamp").notNull().default(sql`(strftime('%s', 'now'))`),
 });
 
 export type Tank = typeof tanks.$inferSelect;
