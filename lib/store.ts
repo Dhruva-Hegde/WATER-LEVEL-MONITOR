@@ -14,6 +14,7 @@ export interface TankState {
     name: string;
     location: string;
     height: number;
+    alertThreshold: number;
     rssi?: number;
 }
 
@@ -53,6 +54,7 @@ export const hydrateStore = async (force = false) => {
                         location: t.location || "Unknown",
                         capacity: t.capacity,
                         height: t.height || 100,
+                        alertThreshold: t.alertThreshold || 10,
                         // Preserve live data if it exists in memory, else default to offline
                         level: existing?.level || 0,
                         volume: existing?.volume || 0,
@@ -118,6 +120,7 @@ export const registerTank = async (secret: string, tank: any) => {
         lastSeen: Date.now(),
         capacity: tank.capacity,
         height: tank.height || 100,
+        alertThreshold: 10,
         name: tank.name,
         location: tank.location || "Unknown"
     };

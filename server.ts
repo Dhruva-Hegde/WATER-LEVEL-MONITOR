@@ -12,7 +12,7 @@ import {
     tankStore,
 } from "./lib/store";
 import { db } from "@/lib/db";
-import { tanks } from "@/lib/db/schema";
+import { tanks, readings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { startMDNS } from "@/lib/discovery";
 
@@ -138,6 +138,31 @@ app.prepare().then(async () => {
             });
 
             if (updatedState) {
+                // 1. Alert Logic: Emit alert to dashboard if below threshold
+                if (updatedState.level < updatedState.alertThreshold && updatedState.status === "online") {
+                    io.to("dashboard").emit("tank-alert", {
+                        id: updatedState.id,
+                        name: updatedState.name,
+                        level: updatedState.level,
+                        threshold: updatedState.alertThreshold
+                    });
+                }
+
+                // 2. History Persistence: Save to DB every 10 minutes (per tank)
+                const lastSaveMap = (global as any).lastHistorySave || {};
+                const now = Date.now();
+                const lastSave = lastSaveMap[updatedState.id] || 0;
+
+                if (now - lastSave > 10 * 60 * 1000) {
+                    await db.insert(readings).values({
+                        tankId: updatedState.id,
+                        level: updatedState.level,
+                    });
+                    lastSaveMap[updatedState.id] = now;
+                    (global as any).lastHistorySave = lastSaveMap;
+                    console.log(`[History] Saved reading for ${updatedState.name}: ${updatedState.level}%`);
+                }
+
                 io.to("dashboard").emit("tank-live-update", updatedState);
             }
         });

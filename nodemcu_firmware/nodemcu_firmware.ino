@@ -28,11 +28,9 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <Hash.h>
+#include <WiFiManager.h>
 
 /* ================= USER CONFIG ================= */
-
-#define WIFI_SSID "Dhruva"
-#define WIFI_PASS "12345678"
 
 #define TRIG_PIN D7
 #define ECHO_PIN D6
@@ -43,6 +41,7 @@
 /* ================= GLOBALS ================= */
 
 float tankHeightCM = 100.0;
+WiFiManager wm;
 
 #if defined(ESP32)
 Preferences prefs;
@@ -90,12 +89,9 @@ String calculateSignature(int level, String status, int rssi, String secret) {
 
 void checkWiFi() {
   if (WiFi.status() != WL_CONNECTED) {
-    static unsigned long lastTry = 0;
-    if (millis() - lastTry > 10000) {
-      log("WiFi", "Reconnecting...");
-      WiFi.begin(WIFI_SSID, WIFI_PASS);
-      lastTry = millis();
-    }
+    // WiFiManager typically handles persistence, but we'll monitor
+    // and potentially trigger a reconnect or AP mode if desired.
+    // For now, simple logging.
   }
 }
 
@@ -272,8 +268,14 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
+  // WiFiManager: Auto-portal if connection fails
+  log("WiFi", "Initializing WiFiManager...");
+  if (!wm.autoConnect("Smart-Tank-Setup", "setup123")) {
+    log("WiFi", "Failed to connect and hit timeout. Restarting...");
+    delay(3000);
+    ESP.restart();
+  }
+  log("WiFi", "Connected! IP: " + WiFi.localIP().toString());
 
   loadSettings();
 

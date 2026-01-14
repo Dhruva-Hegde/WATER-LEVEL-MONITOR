@@ -10,11 +10,32 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTanks } from "@/hooks/use-tanks";
 import { LiveIndicator } from "./LiveIndicator";
-
+import { toast } from "sonner";
+import { HistoryModal } from "./history/HistoryModal";
+import { useTelemetry } from "@/components/telemetry-provider";
 
 export function Dashboard() {
   const router = useRouter();
   const { data: tanks, isLoading } = useTanks();
+  const { socket } = useTelemetry();
+
+  const [historyTarget, setHistoryTarget] = useState<{ id: string, name: string } | null>(null);
+
+  // Real-time Low Water Alerts
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("tank-alert", (data: { name: string, level: number, threshold: number }) => {
+      toast.error(`Low Water Alert: ${data.name}`, {
+        description: `Level dropped to ${data.level}% (Threshold: ${data.threshold}%)`,
+        duration: 10000,
+      });
+    });
+
+    return () => {
+      socket.off("tank-alert");
+    };
+  }, [socket]);
 
   // Calculate average tank level for logo glow
   const averageLevel = tanks.length > 0
@@ -139,6 +160,7 @@ export function Dashboard() {
                   volume={tank.volume ?? 0}
                   lastUpdated={tank.lastUpdated ?? "Unknown"}
                   status={tank.status as TankStatus}
+                  onViewHistory={(id, name) => setHistoryTarget({ id, name })}
                 />
               ))
             ) : (
@@ -164,6 +186,13 @@ export function Dashboard() {
         </div>
       </main>
 
+      {historyTarget && (
+        <HistoryModal
+          tankId={historyTarget.id}
+          tankName={historyTarget.name}
+          onClose={() => setHistoryTarget(null)}
+        />
+      )}
     </div>
   );
 }

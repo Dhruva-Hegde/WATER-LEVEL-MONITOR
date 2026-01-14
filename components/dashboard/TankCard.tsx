@@ -4,6 +4,7 @@ import { MapPin, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TankVisual } from "./TankVisual";
 import { NodeActions } from "./NodeActions";
+import { Button } from "@/components/ui/button";
 
 export type TankStatus = "idle" | "filling" | "full" | "low" | "offline" | "draining" | "critical" | "connecting";
 
@@ -18,6 +19,7 @@ interface TankCardProps {
   status: TankStatus;
   lastUpdated: string;
   isOnline?: boolean;
+  onViewHistory: (id: string, name: string) => void;
 }
 
 export function TankCard({
@@ -31,6 +33,7 @@ export function TankCard({
   status,
   lastUpdated,
   isOnline = true,
+  onViewHistory,
 }: TankCardProps) {
   const statusConfig: Record<string, { label: string; className: string }> = {
     idle: {
@@ -157,7 +160,17 @@ export function TankCard({
             </>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">Updated {lastUpdated}</span>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[10px] font-bold uppercase tracking-tighter hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/20 rounded-lg"
+            onClick={() => onViewHistory(id, name)}
+          >
+            History
+          </Button>
+          <span className="text-xs text-muted-foreground">Updated {lastUpdated}</span>
+        </div>
       </div>
     </div>
   );
