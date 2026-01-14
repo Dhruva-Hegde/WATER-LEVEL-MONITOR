@@ -1,5 +1,6 @@
-Name         Installed Available    Location Description
-Arduino_JSON 0.2.0     -            user     -
-ArduinoJson  7.4.2     -            user     -
-WebSockets   2.7.2     -            user     -
+Name        Installed Available   Location Description
+ArduinoJson 7.4.2     -           user     -
+ArduinoOTA  1.1.0     -           user     -
+WebSockets  2.7.2     -           user     -
+WiFiManager 2.0.17    -           user     -
 
