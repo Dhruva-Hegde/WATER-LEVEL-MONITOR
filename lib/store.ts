@@ -55,13 +55,13 @@ export const hydrateStore = async (force = false) => {
                         capacity: t.capacity,
                         height: t.height || 100,
                         alertThreshold: t.alertThreshold || 10,
-                        // Preserve live data if it exists in memory, else default to offline
-                        level: existing?.level || 0,
-                        volume: existing?.volume || 0,
-                        status: existing?.status || "offline",
-                        isOnline: existing?.isOnline || false,
-                        lastSeen: existing?.lastSeen || 0,
-                        rssi: existing?.rssi
+                        // Load persistent shadow state from DB
+                        level: t.lastLevel || 0,
+                        volume: Math.round(((t.lastLevel || 0) / 100) * t.capacity),
+                        status: t.lastStatus || "offline",
+                        isOnline: t.lastStatus === "online",
+                        lastSeen: t.lastSeen || 0,
+                        rssi: t.lastRssi
                     };
                 });
 
@@ -197,6 +197,8 @@ export const updateTelemetry = async (secret: string, data: { level: number, sta
     if (!tank) return null;
 
     let updated: TankState | null = null;
+    const now = Date.now();
+
     tankStore.setState((state) => {
         const current = state.tanks[secret];
         if (!current) return state;
@@ -204,9 +206,9 @@ export const updateTelemetry = async (secret: string, data: { level: number, sta
         const nextTank = {
             ...current,
             level: data.level,
-            status: data.status || current.status,
+            status: data.status || "online",
             rssi: data.rssi,
-            lastSeen: Date.now(),
+            lastSeen: now,
             isOnline: true,
             volume: Math.round((data.level / 100) * current.capacity)
         };
@@ -217,6 +219,20 @@ export const updateTelemetry = async (secret: string, data: { level: number, sta
             tanks: { ...state.tanks, [secret]: nextTank }
         };
     });
+
+    if (updated) {
+        // Sync to DB (Shadow State)
+        db.update(tanksTable)
+            .set({
+                lastLevel: data.level,
+                lastStatus: data.status || "online",
+                lastRssi: data.rssi,
+                lastSeen: Math.floor(now / 1000)
+            })
+            .where(eq(tanksTable.secret, secret))
+            .execute()
+            .catch((e: any) => console.error("[Store] DB Sync failed", e));
+    }
 
     return updated;
 };
@@ -235,6 +251,14 @@ export const markOffline = (secret: string) => {
             }
         };
     });
+
+    // Sync to DB
+    db.update(tanksTable)
+        .set({ lastStatus: "offline" })
+        .where(eq(tanksTable.secret, secret))
+        .execute()
+        .catch((e: any) => console.error("[Store] DB Offline Sync failed", e));
+
     return id;
 };
 
@@ -267,6 +291,13 @@ export const checkTimeouts = (timeoutMs = 15000) => {
                 nextTanks[secret] = { ...tank, isOnline: false, status: "offline" };
                 offlineIds.push(tank.id);
                 changed = true;
+
+                // Sync to DB
+                db.update(tanksTable)
+                    .set({ lastStatus: "offline" })
+                    .where(eq(tanksTable.secret, secret))
+                    .execute()
+                    .catch((e: any) => console.error("[Store] DB Timeout Sync failed", e));
             }
         }
 

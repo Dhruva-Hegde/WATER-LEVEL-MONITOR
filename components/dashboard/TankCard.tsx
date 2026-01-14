@@ -161,14 +161,16 @@ export function TankCard({
           )}
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-[10px] font-bold uppercase tracking-tighter hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/20 rounded-lg"
-            onClick={() => onViewHistory(id, name)}
-          >
-            History
-          </Button>
+          {process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[10px] font-bold uppercase tracking-tighter hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/20 rounded-lg"
+              onClick={() => onViewHistory(id, name)}
+            >
+              History
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground">Updated {lastUpdated}</span>
         </div>
       </div>

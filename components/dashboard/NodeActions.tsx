@@ -84,18 +84,16 @@ export function NodeActions({ id, name, location, capacity, height }: NodeAction
                 <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem
                         onClick={() => {
-                            console.log("[UI] Rename Clicked");
                             setActiveDialog("edit");
                         }}
                         className="gap-2 focus:bg-primary/5 cursor-pointer"
                     >
                         <Edit2 className="w-3.5 h-3.5" />
-                        <span>Rename Node</span>
+                        <span>Update Node</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={() => {
-                            console.log("[UI] Delete Clicked");
                             setActiveDialog("delete");
                         }}
                         className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"

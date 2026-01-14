@@ -153,7 +153,7 @@ app.prepare().then(async () => {
                 const now = Date.now();
                 const lastSave = lastSaveMap[updatedState.id] || 0;
 
-                if (now - lastSave > 10 * 60 * 1000) {
+                if (process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true" && now - lastSave > 10 * 60 * 1000) {
                     await db.insert(readings).values({
                         tankId: updatedState.id,
                         level: updatedState.level,
@@ -220,12 +220,29 @@ app.prepare().then(async () => {
     });
 
     // Offline sweeper (runs every 5s)
-    setInterval(() => {
+    setInterval(async () => {
         const offlineIds = checkTimeouts();
         if (offlineIds.length > 0) {
-            offlineIds.forEach((id: string) => {
+            for (const id of offlineIds) {
                 io.to("dashboard").emit("tank-offline", { id });
-            });
+
+                // OPTIONAL: Log a final reading into history to mark the outage
+                if (process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true") {
+                    try {
+                        const secret = await getSecretById(id);
+                        if (secret) {
+                            const tank = tankStore.state.tanks[secret];
+                            await db.insert(readings).values({
+                                tankId: id,
+                                level: tank.level,
+                            });
+                            console.log(`[History] Outage Logged for ${tank.name}: ${tank.level}%`);
+                        }
+                    } catch (e: any) {
+                        console.error("[History] Failed to log outage", e);
+                    }
+                }
+            }
         }
     }, 5000);
 

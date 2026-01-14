@@ -13,6 +13,12 @@ export const tanks = sqliteTable("tanks", {
     secret: text("secret").unique(),
     deviceId: text("device_id").unique(),
     ipAddress: text("ip_address"),
+
+    // Live State (Persistent Shadow)
+    lastLevel: integer("last_level").notNull().default(0),
+    lastStatus: text("last_status").notNull().default("offline"),
+    lastRssi: integer("last_rssi"),
+    lastSeen: integer("last_seen"),
 });
 
 export const readings = sqliteTable("readings", {

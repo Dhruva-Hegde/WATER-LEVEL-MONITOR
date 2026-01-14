@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Plus } from "lucide-react";
+import { Droplets, Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { TankCard, TankStatus } from "./TankCard";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { useTanks } from "@/hooks/use-tanks";
 import { LiveIndicator } from "./LiveIndicator";
 import { toast } from "sonner";
 import { HistoryModal } from "./history/HistoryModal";
+import { FleetHistoryModal } from "./FleetHistoryModal";
 import { useTelemetry } from "@/components/telemetry-provider";
+import { History } from "lucide-react";
 
 export function Dashboard() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export function Dashboard() {
   const { socket } = useTelemetry();
 
   const [historyTarget, setHistoryTarget] = useState<{ id: string, name: string } | null>(null);
+  const [showFleetHistory, setShowFleetHistory] = useState(false);
 
   // Real-time Low Water Alerts
   useEffect(() => {
@@ -120,6 +123,20 @@ export function Dashboard() {
               </span>
             </div>
 
+            {/* Fleet Analytics Button */}
+            {process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFleetHistory(true)}
+                className="h-8 gap-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 rounded-full px-4"
+              >
+                <History className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">Fleet Analytics</span>
+                <span className="lg:hidden">Analytics</span>
+              </Button>
+            )}
+
             <ThemeToggle />
 
             <Link href="/setup">
@@ -148,7 +165,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
         <div className="section-fade-in">
           <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] justify-items-center transition-all duration-300">
             {tanks.length > 0 ? (
@@ -186,11 +203,17 @@ export function Dashboard() {
         </div>
       </main>
 
-      {historyTarget && (
+      {process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true" && historyTarget && (
         <HistoryModal
           tankId={historyTarget.id}
           tankName={historyTarget.name}
           onClose={() => setHistoryTarget(null)}
+        />
+      )}
+
+      {process.env.NEXT_PUBLIC_ENABLE_HISTORY === "true" && showFleetHistory && (
+        <FleetHistoryModal
+          onClose={() => setShowFleetHistory(false)}
         />
       )}
     </div>
