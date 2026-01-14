@@ -37,6 +37,7 @@
 
 #define SENSOR_INTERVAL 2000
 #define DISCOVERY_INTERVAL 10000
+#define HEARTBEAT_INTERVAL 10000
 
 /* ================= GLOBALS ================= */
 
@@ -70,6 +71,11 @@ bool isConnected = false;
 bool isSocketIOHandshaked = false;
 
 unsigned long lastDiscoveryAttempt = 0;
+
+// Runtime state for delta reporting
+int lastSentLevel = -1;
+String lastSentStatus = "";
+unsigned long lastSendTimestamp = 0;
 
 /* ================= LOG ================= */
 
@@ -337,31 +343,46 @@ void loop() {
 
   webSocket.loop();
 
-  static unsigned long lastSend = 0;
-  if (millis() - lastSend > SENSOR_INTERVAL) {
-    lastSend = millis();
+  static unsigned long lastSensorRead = 0;
+  if (millis() - lastSensorRead > SENSOR_INTERVAL) {
+    lastSensorRead = millis();
 
     if (isConnected && isSocketIOHandshaked) {
-      int level = getWaterLevel();
-      StaticJsonDocument<256> doc;
-      doc["secret"] = secret;
-      doc["rssi"] = WiFi.RSSI();
-
-      String status = (level >= 0) ? "online" : "error";
-      int sendLevel = (level >= 0) ? level : 0;
+      int currentLevel = getWaterLevel();
+      String currentStatus = (currentLevel >= 0) ? "online" : "error";
+      int sendLevel = (currentLevel >= 0) ? currentLevel : 0;
       int rssi = WiFi.RSSI();
 
-      String signature = calculateSignature(sendLevel, status, rssi, secret);
+      bool shouldSend = false;
 
-      doc["level"] = sendLevel;
-      doc["status"] = status;
-      doc["rssi"] = rssi;
-      doc["signature"] = signature;
+      // Rule 1: Send if level changed
+      if (sendLevel != lastSentLevel) shouldSend = true;
 
-      String payload;
-      serializeJson(doc, payload);
-      String updateMsg = "42[\"tank-update\"," + payload + "]";
-      webSocket.sendTXT(updateMsg);
+      // Rule 2: Send if status changed
+      if (currentStatus != lastSentStatus) shouldSend = true;
+
+      // Rule 3: Heartbeat - Ensure at least one packet every 10s
+      if (millis() - lastSendTimestamp > HEARTBEAT_INTERVAL) shouldSend = true;
+
+      if (shouldSend) {
+        lastSentLevel = sendLevel;
+        lastSentStatus = currentStatus;
+        lastSendTimestamp = millis();
+
+        StaticJsonDocument<256> doc;
+        doc["secret"] = secret;
+        doc["level"] = sendLevel;
+        doc["status"] = currentStatus;
+        doc["rssi"] = rssi;
+        doc["signature"] = calculateSignature(sendLevel, currentStatus, rssi, secret);
+
+        String payload;
+        serializeJson(doc, payload);
+        String updateMsg = "42[\"tank-update\"," + payload + "]";
+        webSocket.sendTXT(updateMsg);
+
+        log("TELEMETRY", "Sent Sync: " + String(sendLevel) + "% (" + currentStatus + ")");
+      }
     }
   }
 }
