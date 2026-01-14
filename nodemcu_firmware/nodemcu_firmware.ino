@@ -34,6 +34,7 @@
 
 #define TRIG_PIN D7
 #define ECHO_PIN D6
+#define RESET_PIN 0 // FLASH Button (GPIO 0 / D3)
 
 #define SENSOR_INTERVAL 2000
 #define DISCOVERY_INTERVAL 10000
@@ -273,6 +274,7 @@ void setup() {
 
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
+  pinMode(RESET_PIN, INPUT_PULLUP);
 
   // WiFiManager: Auto-portal if connection fails
   log("WiFi", "Initializing WiFiManager...");
@@ -335,6 +337,20 @@ void loop() {
   server.handleClient();
   checkWiFi();
   ArduinoOTA.handle();
+
+  // --- WiFi Reset Button Logic ---
+  static unsigned long resetPressStart = 0;
+  if (digitalRead(RESET_PIN) == LOW) { // Button Pressed (Active Low)
+    if (resetPressStart == 0) resetPressStart = millis();
+    if (millis() - resetPressStart > 5000) { // 5 Second Hold
+      log("SYSTEM", "!!! WiFi Settings Reset !!!");
+      wm.resetSettings();
+      delay(1000);
+      ESP.restart();
+    }
+  } else {
+    resetPressStart = 0;
+  }
 
   if (!wsInitialized && millis() - lastDiscoveryAttempt > DISCOVERY_INTERVAL) {
     initWebSocket();
