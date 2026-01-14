@@ -5,11 +5,17 @@ import { scanDevices, startMDNS } from "@/lib/discovery";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { tanks } from "@/lib/db/schema";
+import { isRateLimited } from "@/lib/rate-limit";
 
 // Ensure mDNS is started when this module is loaded/used
 let mdnsStarted = false;
 
-export async function GET() {
+export async function GET(req: Request) {
+    const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for") || "127.0.0.1";
+    if (isRateLimited(ip, 30, 60000)) {
+        console.warn(`[RateLimit] Scan throttled for IP: ${ip}`);
+        return NextResponse.json({ error: "Too many requests. Please wait." }, { status: 429 });
+    }
     if (!mdnsStarted) {
         try {
             startMDNS();

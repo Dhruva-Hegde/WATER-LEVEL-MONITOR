@@ -29,6 +29,28 @@ app.prepare().then(async () => {
     startMDNS();
 
     const server = createServer((req, res) => {
+        const pin = process.env.DASHBOARD_PIN;
+        const url = req.url || "/";
+
+        // Simple exclusion list for authentication
+        const isAuthExempt =
+            url === "/login" ||
+            url.startsWith("/api/auth") ||
+            url.startsWith("/_next") ||
+            url.includes(".") ||
+            !pin;
+
+        if (!isAuthExempt) {
+            const cookies = req.headers.cookie || "";
+            const authCookie = cookies.split(';').find(c => c.trim().startsWith('dashboard_auth='))?.split('=')[1];
+
+            if (authCookie !== pin) {
+                res.writeHead(302, { Location: "/login" });
+                res.end();
+                return;
+            }
+        }
+
         handle(req, res);
     });
 
@@ -80,12 +102,25 @@ app.prepare().then(async () => {
         });
 
         socket.on("tank-update", async (data) => {
-            // data: { secret, level, status, rssi }
-            const { secret, level, status, rssi } = data;
+            // data: { secret, level, status, rssi, signature }
+            const { secret, level, status, rssi, signature } = data;
 
             // Strict Gatekeeper: Re-validate on every update packet
             const isValid = await validateSecret(secret);
             if (!isValid) return;
+
+            // Integrity Check: Verify HMAC Signature
+            if (!signature) {
+                console.warn(`[Server] Rejected unsigned update from ${secret.slice(0, 8)}`);
+                return;
+            }
+
+            const { verifyTelemetry } = await import("@/lib/crypto");
+            const payload = { secret, level, status, rssi };
+            if (!verifyTelemetry(payload, secret, signature)) {
+                console.warn(`[Server] Rejected invalid HMAC signature from ${secret.slice(0, 8)}`);
+                return;
+            }
 
             socket.join(`device-${secret}`); // Safe to auto-join NOW because we validated.
 

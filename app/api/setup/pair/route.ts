@@ -7,8 +7,14 @@ import { tanks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getLocalIP } from "@/lib/discovery";
 import { registerTank } from "@/lib/store";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+    const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for") || "127.0.0.1";
+    if (isRateLimited(ip, 20, 60000)) {
+        console.warn(`[RateLimit] Pairing throttled for IP: ${ip}`);
+        return NextResponse.json({ error: "Pairing attempts throttled. Try again later." }, { status: 429 });
+    }
     try {
         const { targetIp, port, tankName, deviceId, height } = await req.json();
         const serverIp = getLocalIP();

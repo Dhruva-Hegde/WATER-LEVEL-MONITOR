@@ -26,6 +26,8 @@
 
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
+#include <Hash.h>
 
 /* ================= USER CONFIG ================= */
 
@@ -74,6 +76,14 @@ unsigned long lastDiscoveryAttempt = 0;
 
 void log(const String &tag, const String &msg) {
   Serial.printf("[%s] %s\n", tag.c_str(), msg.c_str());
+}
+
+/* ================= CRYPTO ================= */
+
+String calculateSignature(int level, String status, int rssi, String secret) {
+  // Stable format: level|status|rssi|secret
+  String data = String(level) + "|" + status + "|" + String(rssi) + "|" + secret;
+  return sha1(data);
 }
 
 /* ================= WIFI ================= */
@@ -236,10 +246,17 @@ String msg = String(buf);
 void initWebSocket() {
   if (!isPaired || wsInitialized) return;
 
+  // Proactively try to find server via mDNS if we don't have a working host
+  if (socketHost.length() == 0 || !isConnected) {
+    log("MDNS", "Refreshing server location...");
+    if (findServerMDNS()) {
+       log("MDNS", "Found server at " + socketHost + ":" + String(socketPort));
+    }
+  }
+
+  if (socketHost.length() == 0) return;
+
   String path = "/api/socket/io/?EIO=4&transport=websocket";
-
-  if (socketHost.length() == 0 && !findServerMDNS()) return;
-
   webSocket.begin(socketHost, socketPort, path);
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);
@@ -268,7 +285,16 @@ void setup() {
   MDNS.addServiceTxt("smart-tank-node", "tcp", "id", String((uint32_t)ESP.getEfuseMac(), HEX));
 #endif
 
+  ArduinoOTA.setHostname(("tank-" + tankId).c_str());
+  ArduinoOTA.setPassword("admin123"); // 🔒 PIN Protect OTA uploads
+  ArduinoOTA.begin();
+
   server.on("/config", HTTP_POST, []() {
+    if (millis() > 180000) { // 3 Minute Security Window
+      server.send(403, "application/json", "{\"error\":\"Pairing Window Closed. Restart Node.\"}");
+      return;
+    }
+
     StaticJsonDocument<256> doc;
     deserializeJson(doc, server.arg("plain"));
 
@@ -300,6 +326,7 @@ void loop() {
 
   server.handleClient();
   checkWiFi();
+  ArduinoOTA.handle();
 
   if (!wsInitialized && millis() - lastDiscoveryAttempt > DISCOVERY_INTERVAL) {
     initWebSocket();
@@ -314,20 +341,25 @@ void loop() {
 
     if (isConnected && isSocketIOHandshaked) {
       int level = getWaterLevel();
-      if (level >= 0) {
-        StaticJsonDocument<256> doc;
-        doc["secret"] = secret;
-        doc["level"] = level;
-        doc["status"] = "online";
-        doc["rssi"] = WiFi.RSSI();
+      StaticJsonDocument<256> doc;
+      doc["secret"] = secret;
+      doc["rssi"] = WiFi.RSSI();
 
-        String payload;
-        serializeJson(doc, payload);
+      String status = (level >= 0) ? "online" : "error";
+      int sendLevel = (level >= 0) ? level : 0;
+      int rssi = WiFi.RSSI();
 
-        // 🔧 FIXED: variable required
-        String updateMsg = "42[\"tank-update\"," + payload + "]";
-        webSocket.sendTXT(updateMsg);
-      }
+      String signature = calculateSignature(sendLevel, status, rssi, secret);
+
+      doc["level"] = sendLevel;
+      doc["status"] = status;
+      doc["rssi"] = rssi;
+      doc["signature"] = signature;
+
+      String payload;
+      serializeJson(doc, payload);
+      String updateMsg = "42[\"tank-update\"," + payload + "]";
+      webSocket.sendTXT(updateMsg);
     }
   }
 }

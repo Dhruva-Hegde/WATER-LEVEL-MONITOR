@@ -2,6 +2,7 @@
 import { io } from "socket.io-client";
 import http from "http";
 import { Bonjour } from "bonjour-service";
+import crypto from "crypto";
 
 const bonjour = new Bonjour();
 
@@ -228,7 +229,10 @@ class SimulatedNode {
             rssi: -50 + Math.round(Math.random() * -10) // -50 to -60 dBm
         };
 
-        this.socket.emit("tank-update", payload);
+        const signatureData = `${payload.level}|${payload.status}|${payload.rssi}|${payload.secret}`;
+        const signature = crypto.createHash("sha1").update(signatureData).digest("hex");
+
+        this.socket.emit("tank-update", { ...payload, signature });
         // this.log("SENSOR", `Telemetry Sent: Level ${payload.level}% (Height: ${this.tankHeightCM}cm)`); 
     }
 }
