@@ -261,6 +261,12 @@ void setup() {
   loadSettings();
 
   MDNS.begin("smart-tank");
+  MDNS.addService("smart-tank-node", "tcp", 80);
+#if defined(ESP8266)
+  MDNS.addServiceTxt("smart-tank-node", "tcp", "id", String(ESP.getChipId(), HEX));
+#else
+  MDNS.addServiceTxt("smart-tank-node", "tcp", "id", String((uint32_t)ESP.getEfuseMac(), HEX));
+#endif
 
   server.on("/config", HTTP_POST, []() {
     StaticJsonDocument<256> doc;

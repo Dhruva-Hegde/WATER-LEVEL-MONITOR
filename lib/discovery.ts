@@ -60,14 +60,14 @@ export async function scanDevices(timeoutMs = 6000): Promise<DiscoveredDevice[]>
     return new Promise((resolve) => {
         console.log("mDNS: Scanning for _smart-tank-node._tcp.local...");
 
-        // Start multiple browsers to increase hit rate
-        const browser1 = b.find({ type: "smart-tank-node", protocol: "tcp" });
-        const browser2 = b.find({ type: "smart-tank-node" }); // Some libs don't want protocol specified separate
+        // Scan for the specific service type
+        const browser = b.find({ type: "smart-tank-node", protocol: "tcp" });
 
         const onUp = (service: any) => {
-            console.log(`mDNS: [UP] "${service.name}" - Type: ${service.type} - IP: ${service.addresses?.[0]}`);
+            console.log(`mDNS: [UP] "${service.name}" - IP: ${service.addresses?.[0]} - TXT:`, service.txt);
 
             if (service.addresses && service.addresses.length > 0) {
+                // Filter for a valid IPv4 address
                 const ip = service.addresses.find((a: string) => a.includes('.') && !a.startsWith('127.')) || service.addresses[0];
                 const id = service.txt?.id || service.name.split('-').pop();
 
@@ -78,18 +78,21 @@ export async function scanDevices(timeoutMs = 6000): Promise<DiscoveredDevice[]>
                         port: service.port,
                         id: id
                     });
-                    console.log(`mDNS: [+] Result Added: ${service.name} (${ip})`);
+                    console.log(`mDNS: [+] Entry added: ${service.name} at ${ip}`);
                 }
             }
         };
 
-        browser1.on('up', onUp);
-        browser2.on('up', onUp);
+        browser.on('up', onUp);
+
+        // Fallback for some environments where 'tcp' might be implicit or explicit type needed
+        const browserFallback = b.find({ type: "smart-tank-node" });
+        browserFallback.on('up', onUp);
 
         setTimeout(() => {
-            browser1.stop();
-            browser2.stop();
-            console.log(`mDNS: Scan finished. Found ${devices.length} devices.`);
+            browser.stop();
+            browserFallback.stop();
+            console.log(`mDNS: Scan complete. Found ${devices.length} devices.`);
             resolve(devices);
         }, timeoutMs);
     });

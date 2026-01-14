@@ -88,6 +88,7 @@ export default function SetupPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     targetIp: pairingDevice.ip,
+                    port: pairingDevice.port,
                     tankName: tankName,
                     height: Number(tankHeight),
                     deviceId: pairingDevice.id

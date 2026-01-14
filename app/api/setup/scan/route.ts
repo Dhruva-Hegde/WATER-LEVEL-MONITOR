@@ -27,10 +27,14 @@ export async function GET() {
         const pairedIds = new Set(existingTanks.map((t: { deviceId: string | null }) => t.deviceId).filter(Boolean));
         const pairedIps = new Set(existingTanks.map((t: { ip: string | null }) => t.ip).filter(Boolean));
 
-        const devicesWithStatus = devices.map(d => ({
-            ...d,
-            isPaired: (d.id && pairedIds.has(d.id)) || pairedIps.has(d.ip)
-        }));
+        const devicesWithStatus = devices.map(d => {
+            const isPairedById = d.id && pairedIds.has(d.id);
+            const isPairedByIp = pairedIps.has(d.ip);
+            return {
+                ...d,
+                isPaired: !!(isPairedById || isPairedByIp)
+            };
+        });
 
         return NextResponse.json({ devices: devicesWithStatus });
     } catch (error) {

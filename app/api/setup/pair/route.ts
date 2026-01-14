@@ -10,8 +10,9 @@ import { registerTank } from "@/lib/store";
 
 export async function POST(req: Request) {
     try {
-        const { targetIp, tankName, deviceId, height } = await req.json();
+        const { targetIp, port, tankName, deviceId, height } = await req.json();
         const serverIp = getLocalIP();
+        const targetPort = port || 80;
 
         if (!targetIp || !tankName) {
             return NextResponse.json({ error: "Missing targetIp or tankName" }, { status: 400 });
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
 
         // 2. Send credentials to the device
         try {
-            const response = await fetch(`http://${targetIp}/config`, {
+            const response = await fetch(`http://${targetIp}:${targetPort}/config`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
