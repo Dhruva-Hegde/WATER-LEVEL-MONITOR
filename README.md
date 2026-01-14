@@ -82,6 +82,13 @@ Want to test the dashboard without hardware? We've included a simulator.
 - **Styling**: Tailwind CSS
 - **Discovery**: Bonjour / mDNS
 
+
+# Arduino Library installation commands (for Arduino CLI)
+arduino-cli lib install "Arduino_JSON@0.2.0"
+arduino-cli lib install "ArduinoJson@7.4.2"
+arduino-cli lib install "WebSockets@2.7.2"
+arduino-cli core install esp8266:esp8266@3.1.2
+
 ## License
 
 MIT
