@@ -6,9 +6,9 @@ export default function AboutPage() {
     const teamMembers = [
         { name: "Adesh M", role: "Full Stack Developer", link: "https://adesh-rust.vercel.app/" },
         { name: "Dhruva Hegde", role: "Frontend Developer", link: "https://dhruvahegde.vercel.app/" },
-        { name: "Ashrith Aithal", role: "IoT Engineer", link: "" },
+        { name: "Ashrith Aithal", role: "IoT Engineer", link: "https://www.ashrith.in/" },
         { name: "Karthik Hegde", role: "Backend Developer", link: "" },
-        { name: "Afreed Pasha", role: "UI/UX Designer", link: "" },
+        { name: "Afreed Pasha", role: "UI/UX Designer", link: "https://mohammedafreedpasha.vercel.app/" },
         { name: "Ankita", role: "Hardware Engineer", link: "" },
     ];
 
