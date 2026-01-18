@@ -51,13 +51,24 @@ export function Dashboard() {
         try {
           const messageText = type === "low"
             ? `Low water level in ${tankName}. Current level is ${level} percent.`
-            : `Full water level in ${tankName}. Current level is ${level} percent.`;
+            : `${tankName} is now full at ${level} percent.`;
 
           const message = new SpeechSynthesisUtterance();
           message.text = messageText;
           message.volume = 1.0;
           message.rate = 1.0;
           message.pitch = 1.0;
+
+          // 4. Select Female Voice
+          const voices = window.speechSynthesis.getVoices();
+          const femaleVoice = voices.find(v =>
+            v.name.includes("Female") ||
+            v.name.includes("Zira") ||
+            v.name.includes("Samantha") ||
+            v.name.includes("Victoria") ||
+            v.name.includes("Google UK English Female")
+          );
+          if (femaleVoice) message.voice = femaleVoice;
 
           window.speechSynthesis.speak(message);
           return;
