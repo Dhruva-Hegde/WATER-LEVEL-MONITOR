@@ -147,14 +147,22 @@ app.prepare().then(async () => {
             }) as any; // Cast to avoid TS 'never' inference issues in complex handler
 
             if (updatedState) {
-                // 1. Alert Logic: Emit alert to dashboard if below threshold
-                if (updatedState.level < updatedState.alertThreshold && updatedState.status === "online") {
-                    io.to("dashboard").emit("tank-alert", {
-                        id: updatedState.id,
-                        name: updatedState.name,
-                        level: updatedState.level,
-                        threshold: updatedState.alertThreshold
-                    });
+                // 1. Alert Logic: Emit alert to dashboard if below threshold or nearly full
+                if (updatedState.status === "online") {
+                    if (updatedState.level < updatedState.alertThreshold) {
+                        io.to("dashboard").emit("tank-alert", {
+                            id: updatedState.id,
+                            name: updatedState.name,
+                            level: updatedState.level,
+                            threshold: updatedState.alertThreshold
+                        });
+                    } else if (updatedState.level >= 95) {
+                        io.to("dashboard").emit("tank-full", {
+                            id: updatedState.id,
+                            name: updatedState.name,
+                            level: updatedState.level
+                        });
+                    }
                 }
 
                 // 2. History Persistence: Save to DB every 10 minutes (per tank)

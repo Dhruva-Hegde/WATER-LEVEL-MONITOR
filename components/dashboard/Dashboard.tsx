@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Plus, ShieldCheck } from "lucide-react";
+import { Droplets, Plus } from "lucide-react";
 import Link from "next/link";
 import { TankCard, TankStatus } from "./TankCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTanks } from "@/hooks/use-tanks";
-import { LiveIndicator } from "./LiveIndicator";
 import { toast } from "sonner";
 import { HistoryModal } from "./history/HistoryModal";
 import { FleetHistoryModal } from "./FleetHistoryModal";
@@ -24,6 +23,73 @@ export function Dashboard() {
   const [historyTarget, setHistoryTarget] = useState<{ id: string, name: string } | null>(null);
   const [showFleetHistory, setShowFleetHistory] = useState(false);
 
+  // Audio Alert Ref Storage
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAnnouncedRef = useRef<Record<string, { level: number, type: string }>>({});
+
+  // Audio Alert System
+  const playAlertSound = (tankName: string, level: number, type: "low" | "full" = "low") => {
+    if (typeof window === "undefined") return;
+
+    // 1. Instant Cancel ANY current speech (Low latency)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    // 2. Debounce Announcement (Avoid stuttering during jitter)
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
+
+    speechTimeoutRef.current = setTimeout(() => {
+      // 3. Avoid repeating identical alerts (jitter protection)
+      const last = lastAnnouncedRef.current[tankName];
+      if (last && last.level === level && last.type === type) return;
+      lastAnnouncedRef.current[tankName] = { level, type };
+      // --- TTS (Primary) ---
+      if (window.speechSynthesis) {
+        try {
+          const messageText = type === "low"
+            ? `Low water level in ${tankName}. Current level is ${level} percent.`
+            : `Full water level in ${tankName}. Current level is ${level} percent.`;
+
+          const message = new SpeechSynthesisUtterance();
+          message.text = messageText;
+          message.volume = 1.0;
+          message.rate = 1.0;
+          message.pitch = 1.0;
+
+          window.speechSynthesis.speak(message);
+          return;
+        } catch (e) {
+          console.warn("[Dashboard] TTS failed, falling back to beep", e);
+        }
+      }
+
+      // --- Beep (Fallback) ---
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const frequency = type === "full" ? 1760 : 880;
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.5);
+        }
+      } catch (e) {
+        console.error("[Dashboard] Audio fallback failed", e);
+      }
+    }, 500); // 500ms debounce
+  };
+
   // Real-time Low Water Alerts
   useEffect(() => {
     if (!socket) return;
@@ -33,10 +99,24 @@ export function Dashboard() {
         description: `Level dropped to ${data.level}% (Threshold: ${data.threshold}%)`,
         duration: 10000,
       });
+
+      // Play audio alert
+      playAlertSound(data.name, data.level, "low");
+    });
+
+    socket.on("tank-full", (data: { name: string, level: number }) => {
+      toast.success(`${data.name} is Full!`, {
+        description: `Level reached ${data.level}%`,
+        duration: 10000,
+      });
+
+      // Play audio alert
+      playAlertSound(data.name, data.level, "full");
     });
 
     return () => {
       socket.off("tank-alert");
+      socket.off("tank-full");
     };
   }, [socket]);
 
