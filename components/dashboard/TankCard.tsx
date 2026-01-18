@@ -149,7 +149,10 @@ export function TankCard({
           {isOnline ? (
             <>
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-xs font-medium border border-success/30">
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-medium border",
+                currentStatus.className
+              )}>
                 {currentStatus.label}
               </span>
             </>

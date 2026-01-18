@@ -365,7 +365,8 @@ void loop() {
 
     if (isConnected && isSocketIOHandshaked) {
       int currentLevel = getWaterLevel();
-      String currentStatus = (currentLevel >= 0) ? "online" : "error";
+      // Treat -1 (timeout) as 0% online to satisfy user requirement (0 is not an error)
+      String currentStatus = "online"; 
       int sendLevel = (currentLevel >= 0) ? currentLevel : 0;
       int rssi = WiFi.RSSI();
 
