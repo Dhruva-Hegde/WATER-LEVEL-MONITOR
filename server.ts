@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { tanks, readings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { startMDNS } from "@/lib/discovery";
+import { cleanupOldReadings } from "@/lib/db/maintenance";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = 3000;
@@ -27,6 +28,14 @@ app.prepare().then(async () => {
 
     // Start mDNS advertisement
     startMDNS();
+
+    // Database Maintenance: Weekly cleanup (7 days)
+    // Run once on startup
+    cleanupOldReadings(7).catch(e => console.error("[Maintenance] Startup cleanup failed", e));
+    // Schedule to run every 24 hours
+    setInterval(() => {
+        cleanupOldReadings(7).catch(e => console.error("[Maintenance] Scheduled cleanup failed", e));
+    }, 24 * 60 * 60 * 1000);
 
     const server = createServer((req, res) => {
         const pin = process.env.DASHBOARD_PIN;
