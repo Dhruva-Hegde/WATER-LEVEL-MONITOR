@@ -31,8 +31,8 @@ async function testCleanup() {
         const afterReadings = await db.select().from(readings).where(sql`tank_id LIKE 'test-%'`);
         console.log(`Remaining test readings: ${afterReadings.length}`);
 
-        const hasOld = afterReadings.some(r => r.timestamp === eightDaysAgo);
-        const hasNew = afterReadings.some(r => r.timestamp === sixDaysAgo || r.timestamp === now);
+        const hasOld = afterReadings.some((r: typeof readings.$inferSelect) => r.timestamp === eightDaysAgo);
+        const hasNew = afterReadings.some((r: typeof readings.$inferSelect) => r.timestamp === sixDaysAgo || r.timestamp === now);
 
         if (!hasOld && hasNew) {
             console.log("✅ SUCCESS: Old records removed, recent records kept.");
