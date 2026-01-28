@@ -48,6 +48,7 @@ app.prepare().then(async () => {
         const isAuthExempt =
             url === "/login" ||
             url.startsWith("/api/auth") ||
+            url.startsWith("/api/socket") ||
             url.startsWith("/_next") ||
             url.includes(".") ||
             !pin;
@@ -99,6 +100,7 @@ app.prepare().then(async () => {
             }
 
             await hydrateStore(); // Ensure we are ready
+            (socket as any).deviceSecret = secret; // Store for disconnect handler
             socket.join(`device-${secret}`);
             console.log(`[Server] Device authenticated: ${secret.slice(0, 8)}...`);
 
@@ -235,8 +237,20 @@ app.prepare().then(async () => {
             }
         });
 
-        socket.on("disconnect", (reason) => {
+        socket.on("disconnect", async (reason) => {
             console.log(`[Server] Socket disconnected: ${reason}`);
+
+            // Immediate Offline Status for Devices
+            const secret = (socket as any).deviceSecret;
+            if (secret) {
+                const { markOffline } = await import("./lib/store");
+                const updatedState = markOffline(secret) as any;
+                if (updatedState) {
+                    console.log(`[Server] Device ${updatedState.name} went offline immediately.`);
+                    io.to("dashboard").emit("tank-offline", { id: updatedState.id });
+                    // io.to("dashboard").emit("tank-live-update", updatedState);
+                }
+            }
         });
     });
 

@@ -238,28 +238,31 @@ export const updateTelemetry = async (secret: string, data: { level: number, sta
 };
 
 export const markOffline = (secret: string) => {
-    let id: string | null = null;
+    let updated: TankState | null = null;
     tankStore.setState(state => {
         const tank = state.tanks[secret];
         if (!tank) return state;
-        id = tank.id;
+
+        updated = { ...tank, isOnline: false, status: "offline" };
         return {
             ...state,
             tanks: {
                 ...state.tanks,
-                [secret]: { ...tank, isOnline: false, status: "offline" }
+                [secret]: updated
             }
         };
     });
 
-    // Sync to DB
-    db.update(tanksTable)
-        .set({ lastStatus: "offline" })
-        .where(eq(tanksTable.secret, secret))
-        .execute()
-        .catch((e: any) => console.error("[Store] DB Offline Sync failed", e));
+    if (updated) {
+        // Sync to DB
+        db.update(tanksTable)
+            .set({ lastStatus: "offline" })
+            .where(eq(tanksTable.secret, secret))
+            .execute()
+            .catch((e: any) => console.error("[Store] DB Offline Sync failed", e));
+    }
 
-    return id;
+    return updated;
 };
 
 export const removeTank = (id: string) => {

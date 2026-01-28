@@ -152,8 +152,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                                 ...state.liveData,
                                 [data.id]: {
                                     ...state.liveData[data.id],
-                                    ...data,
-                                    isOnline: true
+                                    ...data
                                 },
                             },
                         };
