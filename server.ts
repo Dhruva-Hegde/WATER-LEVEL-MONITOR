@@ -38,6 +38,9 @@ app.prepare().then(async () => {
     }, 24 * 60 * 60 * 1000);
 
     const server = createServer((req, res) => {
+        if (req.url?.includes("socket.io")) {
+            console.log(`[HTTP] ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
+        }
         const pin = process.env.DASHBOARD_PIN;
         const url = req.url || "/";
 
@@ -76,6 +79,7 @@ app.prepare().then(async () => {
     console.log("Socket.io initialized");
 
     io.on("connection", (socket) => {
+        console.log(`[Socket] New connection: ${socket.id} from ${socket.handshake.address}`);
         // Dashboard joins 'dashboard' room
         socket.on("join-dashboard", async () => {
             socket.join("dashboard");
@@ -263,7 +267,7 @@ app.prepare().then(async () => {
         }
     }, 5000);
 
-    server.listen(port, () => {
-        console.log(`> Ready on http://localhost:${port}`);
+    server.listen(port, "0.0.0.0", () => {
+        console.log(`> Ready on http://0.0.0.0:${port}`);
     });
 });

@@ -11,23 +11,25 @@
 /* ================= BOARD INCLUDES ================= */
 
 #if defined(ESP8266)
-  #include <ESP8266WiFi.h>
-  #include <ESP8266WebServer.h>
-  #include <ESP8266mDNS.h>
-  #include <EEPROM.h>
+#include <EEPROM.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+
 #elif defined(ESP32)
-  #include <WiFi.h>
-  #include <WebServer.h>
-  #include <ESPmDNS.h>
-  #include <Preferences.h>
+#include <ESPmDNS.h>
+#include <Preferences.h>
+#include <WebServer.h>
+#include <WiFi.h>
+
 #else
-  #error "Only ESP8266 / ESP32 supported"
+#error "Only ESP8266 / ESP32 supported"
 #endif
 
-#include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <Hash.h>
+#include <WebSocketsClient.h>
 #include <WiFiManager.h>
 
 /* ================= USER CONFIG ================= */
@@ -77,18 +79,36 @@ unsigned long lastDiscoveryAttempt = 0;
 int lastSentLevel = -1;
 String lastSentStatus = "";
 unsigned long lastSendTimestamp = 0;
+bool shouldRestart = false;
+unsigned long restartTimer = 0;
 
 /* ================= LOG ================= */
 
 void log(const String &tag, const String &msg) {
+#if defined(ESP8266)
+  uint32_t freeHeap = ESP.getFreeHeap();
+  Serial.printf("[%s] %s (heap: %u)\n", tag.c_str(), msg.c_str(), freeHeap);
+  if (freeHeap < 8000) {
+    Serial.println("!!! LOW HEAP WARNING !!!");
+  }
+#else
   Serial.printf("[%s] %s\n", tag.c_str(), msg.c_str());
+#endif
 }
 
 /* ================= CRYPTO ================= */
 
 String calculateSignature(int level, String status, int rssi, String secret) {
-  // Stable format: level|status|rssi|secret
-  String data = String(level) + "|" + status + "|" + String(rssi) + "|" + secret;
+  // 🔧 FIXED: Heap-safe construction
+  String data;
+  data.reserve(status.length() + secret.length() + 30);
+  data = String(level);
+  data += "|";
+  data += status;
+  data += "|";
+  data += String(rssi);
+  data += "|";
+  data += secret;
   return sha1(data);
 }
 
@@ -118,7 +138,13 @@ String loadStringEEPROM(int addr) {
   char c;
   int i = 0;
   while ((c = EEPROM.read(addr + i)) != '\0' && i < 100) {
-    out += c;
+    // 🔧 FIXED: Validate character is printable ASCII
+    if (c >= 32 && c <= 126) {
+      out += c;
+    } else if (c != '\0') {
+      // Invalid character, stop reading
+      break;
+    }
     i++;
   }
   return out;
@@ -128,7 +154,8 @@ String loadStringEEPROM(int addr) {
 /* ================= SETTINGS ================= */
 
 void parseServerUrl() {
-  if (!serverUrl.startsWith("http://")) return;
+  if (!serverUrl.startsWith("http://"))
+    return;
 
   String host = serverUrl.substring(7);
   int idx = host.indexOf(":");
@@ -153,13 +180,18 @@ void loadSettings() {
   prefs.end();
 #else
   EEPROM.begin(512);
+  yield(); // Prevent watchdog
   secret = loadStringEEPROM(0);
+  yield();
   tankId = loadStringEEPROM(100);
+  yield();
   serverUrl = loadStringEEPROM(200);
+  yield();
 #endif
 
   isPaired = secret.length() > 0;
-  if (isPaired) parseServerUrl();
+  if (isPaired)
+    parseServerUrl();
 }
 
 /* ================= SENSOR ================= */
@@ -172,10 +204,12 @@ int getWaterLevel() {
   digitalWrite(TRIG_PIN, LOW);
 
   long duration = pulseIn(ECHO_PIN, HIGH, 30000);
-  if (duration == 0) return -1;
+  if (duration == 0)
+    return -1;
 
   float dist = (duration * 0.0343) / 2.0;
-  if (dist > tankHeightCM) dist = tankHeightCM;
+  if (dist > tankHeightCM)
+    dist = tankHeightCM;
 
   return round(((tankHeightCM - dist) / tankHeightCM) * 100.0);
 }
@@ -184,7 +218,8 @@ int getWaterLevel() {
 
 bool findServerMDNS() {
   int n = MDNS.queryService("smart-tank-srv", "tcp");
-  if (n <= 0) return false;
+  if (n <= 0)
+    return false;
 
   socketHost = MDNS.IP(0).toString();
   socketPort = MDNS.port(0);
@@ -202,6 +237,14 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
     isSocketIOHandshaked = false;
   }
 
+  else if (type == WStype_CONNECTED) {
+    log("SOCKET", "Connected at transport level (waiting for handshake)");
+  }
+
+  else if (type == WStype_ERROR) {
+    log("SOCKET", "Error occurred");
+  }
+
   else if (type == WStype_TEXT) {
 
     // Engine.IO ping
@@ -210,12 +253,20 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
       return;
     }
 
-    char buf[length + 1];
-memcpy(buf, payload, length);
-buf[length] = '\0';
+    // 🔧 CRITICAL: Reject oversized messages
+    if (length > 512) {
+      log("SOCKET", "Message too large: " + String(length));
+      return;
+    }
 
-String msg = String(buf);
-
+    // 🔧 FIXED: Heap-safe string construction with yield()
+    String msg;
+    msg.reserve(length + 1);
+    for (size_t i = 0; i < length; i++) {
+      msg += (char)payload[i];
+      if (i % 50 == 0)
+        yield(); // Prevent watchdog
+    }
 
     // Engine.IO open
     if (msg.startsWith("0")) {
@@ -227,8 +278,12 @@ String msg = String(buf);
       isConnected = true;
       isSocketIOHandshaked = true;
 
-      // 🔧 FIXED: use variable (not temporary String)
-      String identifyMsg = "42[\"tank-identify\",\"" + secret + "\"]";
+      // 🔧 FIXED: Heap-safe construction with reserve
+      String identifyMsg;
+      identifyMsg.reserve(secret.length() + 25);
+      identifyMsg = "42[\"tank-identify\",\"";
+      identifyMsg += secret;
+      identifyMsg += "\"]";
       webSocket.sendTXT(identifyMsg);
 
       log("SOCKET", "Authenticated");
@@ -236,10 +291,16 @@ String msg = String(buf);
 
     // Tank config
     else if (msg.indexOf("\"tank-config\"") > 0) {
-      StaticJsonDocument<256> doc;
+      StaticJsonDocument<192> doc;
       int s = msg.indexOf(",") + 1;
-      deserializeJson(doc, msg.substring(s, msg.length() - 1));
-      if (doc["height"]) tankHeightCM = doc["height"];
+      DeserializationError err =
+          deserializeJson(doc, msg.substring(s, msg.length() - 1));
+      if (!err && doc["height"]) {
+        tankHeightCM = doc["height"];
+        log("CONFIG", "Tank height updated: " + String(tankHeightCM));
+      } else if (err) {
+        log("ERROR", "JSON parse failed: " + String(err.c_str()));
+      }
     }
   }
 }
@@ -247,19 +308,29 @@ String msg = String(buf);
 /* ================= WS INIT ================= */
 
 void initWebSocket() {
-  if (!isPaired || wsInitialized) return;
+  if (!isPaired) {
+    log("WS", "Not paired, skipping init");
+    return;
+  }
+  if (wsInitialized)
+    return;
 
   // Proactively try to find server via mDNS if we don't have a working host
   if (socketHost.length() == 0 || !isConnected) {
     log("MDNS", "Refreshing server location...");
     if (findServerMDNS()) {
-       log("MDNS", "Found server at " + socketHost + ":" + String(socketPort));
+      log("MDNS", "Found server at " + socketHost + ":" + String(socketPort));
     }
   }
 
-  if (socketHost.length() == 0) return;
+  if (socketHost.length() == 0) {
+    log("WS", "No server host, waiting for discovery...");
+    return;
+  }
 
-  String path = "/api/socket/io/?EIO=4&transport=websocket";
+  log("WS", "Starting connection to " + socketHost + ":" + String(socketPort));
+  String path = "/api/socket/io?EIO=4&transport=websocket";
+  log("WS", "Path: " + path);
   webSocket.begin(socketHost, socketPort, path);
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);
@@ -283,48 +354,83 @@ void setup() {
     delay(3000);
     ESP.restart();
   }
+  // 🔧 FIXED: Disable portal to free heap
+  wm.setConfigPortalTimeout(0);
   log("WiFi", "Connected! IP: " + WiFi.localIP().toString());
 
+  yield(); // Prevent watchdog
   loadSettings();
+  yield();
 
-  MDNS.begin("smart-tank");
-  MDNS.addService("smart-tank-node", "tcp", 80);
+  yield();
+
+  // 🔧 FIXED: Safe mDNS initialization
+  log("MDNS", "Starting mDNS...");
+  if (MDNS.begin("smart-tank")) {
+    MDNS.addService("smart-tank-node", "tcp", 80);
 #if defined(ESP8266)
-  MDNS.addServiceTxt("smart-tank-node", "tcp", "id", String(ESP.getChipId(), HEX));
+    MDNS.addServiceTxt("smart-tank-node", "tcp", "id",
+                       String(ESP.getChipId(), HEX));
 #else
-  MDNS.addServiceTxt("smart-tank-node", "tcp", "id", String((uint32_t)ESP.getEfuseMac(), HEX));
+    MDNS.addServiceTxt("smart-tank-node", "tcp", "id",
+                       String((uint32_t)ESP.getEfuseMac(), HEX));
 #endif
+    log("MDNS", "Started successfully");
+  } else {
+    log("MDNS", "Failed to start (non-fatal)");
+  }
 
+  yield();
+
+  log("OTA", "Starting OTA...");
   ArduinoOTA.setHostname(("tank-" + tankId).c_str());
   ArduinoOTA.setPassword("admin123"); // 🔒 PIN Protect OTA uploads
   ArduinoOTA.begin();
+  log("OTA", "Started successfully");
+
+  yield();
 
   server.on("/config", HTTP_POST, []() {
     if (millis() > 180000) { // 3 Minute Security Window
-      server.send(403, "application/json", "{\"error\":\"Pairing Window Closed. Restart Node.\"}");
+      server.send(403, "application/json",
+                  "{\"error\":\"Pairing Window Closed. Restart Node.\"}");
       return;
     }
 
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<192> doc;
     deserializeJson(doc, server.arg("plain"));
 
+    String newSecret = doc["secret"];
+    // 🔧 FIXED: Truncate to prevent EEPROM overlap
+    if (newSecret.length() > 90)
+      newSecret = newSecret.substring(0, 90);
+
 #if defined(ESP8266)
-    saveStringEEPROM(0, doc["secret"]);
+    saveStringEEPROM(0, newSecret); // doc["secret"] via variable
     saveStringEEPROM(100, doc["tankId"]);
     saveStringEEPROM(200, doc["serverUrl"]);
 #else
     prefs.begin("tank", false);
-    prefs.putString("secret", doc["secret"]);
+    prefs.putString("secret", newSecret);
     prefs.putString("tankId", doc["tankId"]);
     prefs.putString("serverUrl", doc["serverUrl"]);
     prefs.end();
 #endif
 
     server.send(200, "application/json", "{\"ok\":true}");
-    ESP.restart();
+
+    // 🔧 FIXED: Delayed restart to allow HTTP response to finish
+    shouldRestart = true;
+    restartTimer = millis();
+    log("SYSTEM", "Config updated, rebooting in 1s...");
   });
 
+  log("HTTP", "Starting web server...");
   server.begin();
+  log("HTTP", "Server started on port 80");
+
+  yield();
+  log("SYSTEM", "Setup complete!");
 }
 
 /* ================= LOOP ================= */
@@ -341,7 +447,8 @@ void loop() {
   // --- WiFi Reset Button Logic ---
   static unsigned long resetPressStart = 0;
   if (digitalRead(RESET_PIN) == LOW) { // Button Pressed (Active Low)
-    if (resetPressStart == 0) resetPressStart = millis();
+    if (resetPressStart == 0)
+      resetPressStart = millis();
     if (millis() - resetPressStart > 5000) { // 5 Second Hold
       log("SYSTEM", "!!! WiFi Settings Reset !!!");
       wm.resetSettings();
@@ -357,7 +464,14 @@ void loop() {
     lastDiscoveryAttempt = millis();
   }
 
-  webSocket.loop();
+  // 🔧 FIXED: Guard loop to prevent spam/crashes
+  if (wsInitialized)
+    webSocket.loop();
+
+  // Handle delayed restart
+  if (shouldRestart && millis() - restartTimer > 1000) {
+    ESP.restart();
+  }
 
   static unsigned long lastSensorRead = 0;
   if (millis() - lastSensorRead > SENSOR_INTERVAL) {
@@ -365,40 +479,53 @@ void loop() {
 
     if (isConnected && isSocketIOHandshaked) {
       int currentLevel = getWaterLevel();
-      // Treat -1 (timeout) as 0% online to satisfy user requirement (0 is not an error)
-      String currentStatus = "online"; 
+      // Treat -1 (timeout) as 0% online to satisfy user requirement (0 is not
+      // an error)
+      String currentStatus = "online";
       int sendLevel = (currentLevel >= 0) ? currentLevel : 0;
       int rssi = WiFi.RSSI();
 
       bool shouldSend = false;
 
       // Rule 1: Send if level changed
-      if (sendLevel != lastSentLevel) shouldSend = true;
+      if (sendLevel != lastSentLevel)
+        shouldSend = true;
 
       // Rule 2: Send if status changed
-      if (currentStatus != lastSentStatus) shouldSend = true;
+      if (currentStatus != lastSentStatus)
+        shouldSend = true;
 
       // Rule 3: Heartbeat - Ensure at least one packet every 10s
-      if (millis() - lastSendTimestamp > HEARTBEAT_INTERVAL) shouldSend = true;
+      if (millis() - lastSendTimestamp > HEARTBEAT_INTERVAL)
+        shouldSend = true;
 
       if (shouldSend) {
         lastSentLevel = sendLevel;
         lastSentStatus = currentStatus;
         lastSendTimestamp = millis();
 
-        StaticJsonDocument<256> doc;
+        StaticJsonDocument<192> doc;
         doc["secret"] = secret;
         doc["level"] = sendLevel;
         doc["status"] = currentStatus;
         doc["rssi"] = rssi;
-        doc["signature"] = calculateSignature(sendLevel, currentStatus, rssi, secret);
+        doc["signature"] =
+            calculateSignature(sendLevel, currentStatus, rssi, secret);
 
         String payload;
         serializeJson(doc, payload);
-        String updateMsg = "42[\"tank-update\"," + payload + "]";
+
+        // 🔧 FIXED: Safe blocked string construction
+        String updateMsg;
+        updateMsg.reserve(payload.length() + 20);
+        updateMsg = "42[\"tank-update\",";
+        updateMsg += payload;
+        updateMsg += "]";
+
         webSocket.sendTXT(updateMsg);
 
-        log("TELEMETRY", "Sent Sync: " + String(sendLevel) + "% (" + currentStatus + ")");
+        log("TELEMETRY",
+            "Sent Sync: " + String(sendLevel) + "% (" + currentStatus + ")");
       }
     }
   }
